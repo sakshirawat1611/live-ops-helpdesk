@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Ops Helpdesk</title>
+</head>
+<body>
+  <h1>Live Ops Helpdesk</h1>
+
+  <!-- tickets will show up here -->
+   <div id="ticketList"></div>
+
+  <!-- loads the socket.io client from our own server -->
+   <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+   <script>
+    // connect to our server
+
+    const socket = io("http://localhost:5000");
+
+// tell the server we opened the dashboard
+
+socket.emit("join_dashboard");
+
+// fake tickets for now
+const tickets = ["101", "102", "103", "104", "105"];
+
+// the server sends us the lock state: redraw the list
+socket.on("lock_state", (locks) => {
+  const list = document.getElementById("ticketList");
+  list.innerHTML = "";
+
+  tickets.forEach((id) => {
+    const div = document.createElement("div");
+        // clicking a ticket asks the server to lock it
+    
+            div.onclick = () => {
+                if (locks[id] === socket.id) {
+                    // I own it: release it
+                socket.emit("unlock_ticket", id);
+                } else {
+                    // free (or someone else's: server will reject)
+                    socket.emit("lock_ticket", id);
+                }
+            };
+            if (locks[id] === socket.id) {
+                // I own it
+                div.textContent = "✏️ Ticket #" + id + " (you)";
+            } else if (locks[id]) {
+                // somebody else has it
+                div.textContent = "🔒 Ticket #" + id + " (locked by another agent)";
+            } else {
+                div.textContent = "Ticket #" + id;
+            }
+
+    list.appendChild(div);
+  });
+});
+    </script>
+</body>
+</html>
